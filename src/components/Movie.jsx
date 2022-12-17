@@ -12,7 +12,7 @@ export default function Movie({ movie, genres }) {
           {movie.title}
         </Title>
         <Paragraph>
-          <Text type="secondary">{format(new Date(movie.release_date), 'PPP')}</Text>
+          {movie.release_date && <Text type="secondary">{format(new Date(movie.release_date), 'PPP')}</Text>}
         </Paragraph>
         <Paragraph className="movie__tags">
           {genres.map((genre) => movie.genre_ids.includes(genre.id) && <Tag key={genre.id}>{genre.name}</Tag>)}

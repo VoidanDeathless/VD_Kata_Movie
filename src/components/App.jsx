@@ -10,43 +10,64 @@ export default class App extends Component {
     super(props);
     this.state = {
       movies: [],
+      totalPages: 1,
+      query: 'return',
+      currentPage: 1,
       genres: [],
       isLoading: true,
-      isError: null,
+      onError: null,
       isOffline: false,
     };
+    this.api = 'https://api.themoviedb.org/3';
+    this.apiKey = 'api_key=851fa7c4133df64b24b316353457d809';
   }
 
   componentDidMount() {
+    const { query, currentPage } = this.state;
     window.onoffline = () => {
       this.setState({ isOffline: true });
     };
     window.ononline = () => {
       this.setState({ isOffline: false });
     };
-    fetch('https://api.themoviedb.org/3/search/movie?api_key=851fa7c4133df64b24b316353457d809&query=return')
+    fetch(`${this.api}/search/movie?${this.apiKey}&query=${query}&page=${currentPage}`)
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error(res.status);
       })
-      .then((movies) => this.setState({ movies: movies.results, isLoading: false }))
-      .catch((error) => this.setState({ isError: error, isLoading: false }));
-    fetch('https://api.themoviedb.org/3/genre/movie/list?api_key=851fa7c4133df64b24b316353457d809')
+      .then((movies) => this.setState({ movies: movies.results, totalPages: movies.total_pages, isLoading: false }))
+      .catch((error) => this.setState({ onError: error, isLoading: false }));
+    fetch(`${this.api}/genre/movie/list?${this.apiKey}`)
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error(res.status);
       })
       .then(({ genres }) => this.setState({ genres }))
-      .catch((error) => this.setState({ isError: error, isLoading: false }));
+      .catch((error) => this.setState({ onError: error, isLoading: false }));
   }
 
+  componentDidUpdate() {
+    const { query, currentPage } = this.state;
+    fetch(`${this.api}/search/movie?${this.apiKey}&query=${query}&page=${currentPage}`)
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error(res.status);
+      })
+      .then((movies) => this.setState({ movies: movies.results, totalPages: movies.total_pages, isLoading: false }))
+      .catch((error) => this.setState({ onError: error, isLoading: false }));
+  }
+
+  onChange = (value) => this.setState({ currentPage: value });
+
+  onSearch = (event) => this.setState({ query: event.target.value || 'return' });
+
   render() {
-    const { movies, genres, isLoading, isError, isOffline } = this.state;
+    const { movies, genres, isLoading, onError, isOffline, totalPages, currentPage } = this.state;
 
     return (
       <Layout>
         <Content>
-          {isError && <Alert message="Ошибка" description={isError.message} type="error" showIcon />}
+          {onError && <Alert message="Ошибка" description={onError.message} type="error" showIcon />}
           {isOffline && <Alert message="Пропало подключении к сети" type="error" showIcon />}
           <Tabs
             defaultActiveKey="1"
@@ -55,12 +76,22 @@ export default class App extends Component {
               {
                 label: 'Search',
                 key: '1',
-                children: <TabSearch movies={movies} genres={genres} isLoading={isLoading} />,
+                children: (
+                  <TabSearch
+                    movies={movies}
+                    genres={genres}
+                    isLoading={isLoading}
+                    totalPages={totalPages}
+                    currentPage={currentPage}
+                    onChange={this.onChange}
+                    onSearch={this.onSearch}
+                  />
+                ),
               },
               {
                 label: 'Rated',
                 key: '2',
-                children: <Pagination defaultCurrent={1} total={50} />,
+                children: <Pagination defaultCurrent={1} total={totalPages} pageSize={1} showSizeChanger={false} />,
               },
             ]}
           />
