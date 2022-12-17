@@ -4,6 +4,7 @@ body {
 
 .ant-layout-content {
   max-width: 1010px;
+  min-height: 100vh !important;
   margin: auto;
   padding: 32px;
   background-color: #ffffff;
