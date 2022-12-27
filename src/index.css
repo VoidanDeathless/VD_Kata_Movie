@@ -32,6 +32,8 @@ body {
   grid-row: 1/2;
 }
 .movie__image {
+  height: 100% !important;
+  object-fit: cover;
   max-height: 280px;
 }
 .movie__header {
