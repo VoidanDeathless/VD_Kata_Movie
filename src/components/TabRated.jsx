@@ -7,16 +7,13 @@ export default class TabRated extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      currentPage: 1,
       onError: null,
     };
   }
 
-  onChange = (value) => this.setState({ currentPage: value });
-
   render() {
-    const { currentPage, onError } = this.state;
-    const { guestSessionId, onRate, ratedMovies, ratedTotalPage } = this.props;
+    const { onError } = this.state;
+    const { guestSessionId, onRate, ratedMovies, ratedTotalPages, onChange, ratedCurrentPage } = this.props;
 
     return (
       <Space direction="vertical" size={32}>
@@ -29,13 +26,15 @@ export default class TabRated extends Component {
             </Col>
           ))}
         </Row>
-        <Pagination
-          current={currentPage}
-          total={ratedTotalPage}
-          pageSize={1}
-          showSizeChanger={false}
-          onChange={this.onChange}
-        />
+        {ratedTotalPages > 1 && (
+          <Pagination
+            current={ratedCurrentPage}
+            total={ratedTotalPages}
+            pageSize={1}
+            showSizeChanger={false}
+            onChange={(value) => onChange(value)}
+          />
+        )}
       </Space>
     );
   }

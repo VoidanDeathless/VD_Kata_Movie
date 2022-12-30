@@ -1,10 +1,13 @@
 import { Component } from 'react';
 import { Layout, Tabs, Alert, Spin } from 'antd';
 
+import getGenres from '../services/getGenres';
+import getSessionId from '../services/getSessionId';
+import getRatedMovies from '../services/getRatedMovies';
+
 import GenresContext from './GenresContext';
 import TabSearch from './TabSearch';
 import TabRated from './TabRated';
-import api from './Api';
 
 const { Content } = Layout;
 
@@ -19,6 +22,7 @@ export default class App extends Component {
       isLoading: true,
       ratedMovies: [],
       ratedTotalPages: 0,
+      ratedCurrentPage: 1,
       rating: {},
     };
   }
@@ -32,31 +36,33 @@ export default class App extends Component {
       this.setState({ isOffline: false });
     };
     Promise.all([
-      fetch(`${api.url}/genre/movie/list?${api.key}`)
-        .then((res) => {
-          if (res.ok) return res.json();
-          throw new Error(res.status);
-        })
+      getGenres()
         .then(({ genres }) => this.setState({ genres }))
         .catch((error) => this.setState({ onError: error })),
 
-      fetch(`${api.url}/authentication/guest_session/new?${api.key}`)
-        .then((res) => {
-          if (res.ok) return res.json();
-          throw new Error(res.status);
-        })
+      getSessionId()
         .then((session) => this.setState({ guestSessionId: session.guest_session_id }))
         .catch((error) => this.setState({ onError: error })),
     ]).then(this.setState({ isLoading: false }));
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    const { guestSessionId, ratedCurrentPage } = this.state;
+
+    if (prevState.ratedCurrentPage !== ratedCurrentPage) {
+      getRatedMovies(guestSessionId, ratedCurrentPage).then((movies) =>
+        this.setState({
+          ratedMovies: movies.results,
+          ratedTotalPages: movies.total_pages,
+          isLoading: false,
+        })
+      );
+    }
+  }
+
   onRate = (movieId, value) => {
-    const { guestSessionId } = this.state;
-    fetch(`${api.url}/guest_session/${guestSessionId}/rated/movies?${api.key}`)
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error(res.status);
-      })
+    const { guestSessionId, ratedCurrentPage } = this.state;
+    getRatedMovies(guestSessionId, ratedCurrentPage)
       .then((movies) =>
         this.setState({
           ratedMovies: movies.results,
@@ -75,8 +81,20 @@ export default class App extends Component {
       .catch((error) => this.setState({ onError: error }));
   };
 
+  onChange = (value) => this.setState({ ratedCurrentPage: value });
+
   render() {
-    const { genres, onError, isOffline, guestSessionId, isLoading, ratedMovies, ratedTotalPages, rating } = this.state;
+    const {
+      genres,
+      onError,
+      isOffline,
+      guestSessionId,
+      isLoading,
+      ratedMovies,
+      ratedTotalPages,
+      rating,
+      ratedCurrentPage,
+    } = this.state;
 
     return (
       <GenresContext.Provider value={genres}>
@@ -94,7 +112,6 @@ export default class App extends Component {
                     label: 'Search',
                     key: '1',
                     children: <TabSearch guestSessionId={guestSessionId} onRate={this.onRate} rating={rating} />,
-                    onTabClick: this.onRate,
                   },
                   {
                     label: 'Rated',
@@ -105,6 +122,8 @@ export default class App extends Component {
                         onRate={this.onRate}
                         ratedMovies={ratedMovies}
                         ratedTotalPages={ratedTotalPages}
+                        ratedCurrentPage={ratedCurrentPage}
+                        onChange={this.onChange}
                       />
                     ),
                   },

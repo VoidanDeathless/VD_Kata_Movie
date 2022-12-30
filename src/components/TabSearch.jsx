@@ -2,7 +2,8 @@ import { Component } from 'react';
 import { Space, Row, Col, Input, Pagination, Spin, Alert } from 'antd';
 import debounce from 'lodash.debounce';
 
-import api from './Api';
+import getMovies from '../services/getMovies';
+
 import Movie from './Movie';
 
 const { Search } = Input;
@@ -23,11 +24,7 @@ export default class TabSearch extends Component {
   componentDidMount() {
     const { query, currentPage } = this.state;
 
-    fetch(`${api.url}/search/movie?${api.key}&query=${query}&page=${currentPage}`)
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error(res.status);
-      })
+    getMovies(query, currentPage)
       .then((movies) => this.setState({ movies: movies.results, totalPages: movies.total_pages, isLoading: false }))
       .catch((error) => this.setState({ onError: error, isLoading: false }));
   }
@@ -36,11 +33,7 @@ export default class TabSearch extends Component {
     const { query, currentPage } = this.state;
 
     if (prevState.query !== query || prevState.currentPage !== currentPage) {
-      fetch(`${api.url}/search/movie?${api.key}&query=${query}&page=${currentPage}`)
-        .then((res) => {
-          if (res.ok) return res.json();
-          throw new Error(res.status);
-        })
+      getMovies(query, currentPage)
         .then((movies) => this.setState({ movies: movies.results, totalPages: movies.total_pages, isLoading: false }))
         .catch((error) => this.setState({ onError: error, isLoading: false }));
     }
@@ -66,13 +59,15 @@ export default class TabSearch extends Component {
           ))}
           {!totalPages && 'По вашему запросу ничего не найдено'}
         </Row>
-        <Pagination
-          current={currentPage}
-          total={totalPages}
-          pageSize={1}
-          showSizeChanger={false}
-          onChange={this.onChange}
-        />
+        {totalPages > 1 && (
+          <Pagination
+            current={currentPage}
+            total={totalPages}
+            pageSize={1}
+            showSizeChanger={false}
+            onChange={this.onChange}
+          />
+        )}
       </Space>
     );
   }
